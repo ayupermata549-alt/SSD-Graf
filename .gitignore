@@ -1,0 +1,15 @@
+# Media besar — jangan di-push ke GitHub (>100MB ditolak), simpan lokal saja
+*.mp3
+*.wav
+*.mp4
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# OS
+.DS_Store
+
+# Claude Code internal notes
+memory/
