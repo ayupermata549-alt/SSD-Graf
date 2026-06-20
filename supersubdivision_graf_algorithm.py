@@ -37,7 +37,7 @@ from matplotlib.lines import Line2D
 # ----------------------------------------------------------------------
 # Graph construction
 # ----------------------------------------------------------------------
-
+#Contoh Teks
 def build_ssd_ladder(m: int, n: int):
     if m < 1 or n < 2:
         raise ValueError("Need m >= 1 and n >= 2.")
