@@ -2,7 +2,7 @@
 Interactive UI for radio labeling of SSD_m(L_n).
 
 Run:
-    python ssd_ladder_ui.py
+    python supersubdivision_ui.py
 
 Layout follows the SSD_m(L_n) figure in the calculation document:
     * top rail u_1, u_2, ..., u_n horizontally
@@ -1324,9 +1324,9 @@ def _spec_from_args(args):
     """Parse CLI args into a spec, or return None to fall back to prompts.
 
     Accepted forms:
-        python ssd_ladder_ui.py L k n        -> SSD_k(L_n)
-        python ssd_ladder_ui.py D k m n      -> SSD_k(D_{m,n})
-        python ssd_ladder_ui.py k n          -> SSD_k(L_n)   (backward compat)
+        python supersubdivision_ui.py L k n        -> SSD_k(L_n)
+        python supersubdivision_ui.py D k m n      -> SSD_k(D_{m,n})
+        python supersubdivision_ui.py k n          -> SSD_k(L_n)   (backward compat)
     """
     if not args:
         return None
@@ -1341,8 +1341,8 @@ def _spec_from_args(args):
     except ValueError:
         pass
     print("usage:")
-    print("  python ssd_ladder_ui.py L <k> <n>        # SSD_k(L_n)")
-    print("  python ssd_ladder_ui.py D <k> <m> <n>    # SSD_k(D_{m,n})")
+    print("  python supersubdivision_ui.py L <k> <n>        # SSD_k(L_n)")
+    print("  python supersubdivision_ui.py D <k> <m> <n>    # SSD_k(D_{m,n})")
     sys.exit(2)
 
 
