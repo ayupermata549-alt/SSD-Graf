@@ -147,31 +147,61 @@ def build_ssd_prism_doc(k: int, m: int, n: int):
     G = nx.Graph()
     pos = {}
 
-    STEP = 0.42          # fan offset between subdivisions on the same edge
+    STEP = 0.62          # fan offset between subdivisions on the same edge
+                         # (only matters for k >= 2; k = 1 sits on the edge)
 
     if m == 3:
         # Flat vertical-stacked triangles — matches the SSD_k(D_{3,n}) figures
         # in the document: triangular "roofs" stacked into a tower (apex up),
         # layers joined by straight vertical edges.
         R = 2.5
-        V_GAP = 4.2
-        theta0 = math.pi / 2          # one vertex straight up (apex)
+        # A layer's base-edge midpoint (a cycle-subdivision vertex) sits at
+        # x = 0, directly below the apex, at y = -0.5*R below the base line.
+        # The NEXT layer's apex is also at x = 0. Their vertical separation is
+        # V_GAP - 1.5*R, so V_GAP must exceed 1.5*R or those two dots collide
+        # (the original V_GAP = 4.2 left only 0.45 -> overlap). Keep ~1.75 gap.
+        V_GAP = 1.5 * R + 1.75      # = 5.5  -> clean spacing like the document
+        theta0 = math.pi / 2          # geometric apex (top) direction
 
         def layer_xy(c, i):
-            ang = theta0 + 2 * math.pi * (c - 1) / m
-            return (R * math.cos(ang), -(i - 1) * V_GAP + R * math.sin(ang))
-    else:
-        # Oblique 3-D projection — matches the cube (m=4) / pentagonal-prism
-        # (m=5) figures: each layer a regular m-gon offset diagonally.
+            # Place cycle positions so c = 1 is the bottom-LEFT corner,
+            # c = 2 the apex (top), c = 3 the bottom-right corner. This makes
+            # u_{i,1} a bottom corner (matching the document's u_{1,1}). The
+            # edge-subdivision names then follow from the definition
+            # w_{i,j}=u_{i,j}u_{i,j+1},  v_{i,j}=u_{i,j}u_{i+1,j}:
+            #   w_{i,1}: u_{i,1}-u_{i,2}  (left roof)   v_{i,1}: left wall
+            #   w_{i,2}: u_{i,2}-u_{i,3}  (right roof)  v_{i,2}: central rung
+            #   w_{i,3}: u_{i,3}-u_{i,1}  (bottom)      v_{i,3}: right wall
+            ang = theta0 - 2 * math.pi * (c - 2) / m
+            # layer i = 1 at the BOTTOM, increasing i goes UP.
+            return (R * math.cos(ang), (i - 1) * V_GAP + R * math.sin(ang))
+    elif m == 4:
+        # Oblique 3-D projection — matches the cube / stacked-cube figures
+        # D_{4,n}: each square layer is offset diagonally for a 3-D look.
         R = 2.4
         SKEW_X = 1.15
         H = 2.7
-        theta0 = math.pi / 2 + math.pi / m   # flat-ish top
+        theta0 = math.pi / 2 + math.pi / m   # flat top/bottom square
 
         def layer_xy(c, i):
             ang = theta0 + 2 * math.pi * (c - 1) / m
             return (R * math.cos(ang) + (i - 1) * SKEW_X,
                     R * math.sin(ang) + (i - 1) * H)
+    else:
+        # Flat stacked regular m-gon (apex up), rungs drawn vertically — a 2-D
+        # polygon "tube" tower. Matches the pentagonal-prism D_{5,n} figures
+        # (left-right symmetric, no oblique skew). Works for any m >= 5.
+        R = 2.5
+        theta0 = math.pi / 2                  # one vertex at the top (apex)
+        _angs = [theta0 + 2 * math.pi * (c - 1) / m for c in range(1, m + 1)]
+        _poly_h = R * (max(math.sin(a) for a in _angs)
+                       - min(math.sin(a) for a in _angs))
+        V_GAP = _poly_h + 1.6                 # clear vertical gap between layers
+
+        def layer_xy(c, i):
+            # layer i = 1 at the BOTTOM, increasing i goes UP.
+            ang = theta0 + 2 * math.pi * (c - 1) / m
+            return (R * math.cos(ang), (i - 1) * V_GAP + R * math.sin(ang))
 
     # base vertices
     for i in range(1, n + 1):
@@ -199,7 +229,14 @@ def build_ssd_prism_doc(k: int, m: int, n: int):
     for i in range(1, n + 1):
         for c in range(1, m + 1):
             c_next = c % m + 1
-            add_subs(f"p_{c}_{i}", f"p_{c_next}_{i}", "wc", c, i)
+            # Label index for the cycle subdivision. For the triangular prism
+            # (m == 3) the document numbers the cycle edges by a +1 cyclic
+            # shift, so the BOTTOM edge u_{i,1}-u_{i,3} is w_{i,1}, the left
+            # roof u_{i,1}-u_{i,2} is w_{i,2}, and the right roof u_{i,2}-u_{i,3}
+            # is w_{i,3} (i.e. edge (c, c_next) carries label c_next). For other
+            # m we keep the canonical lower-endpoint index c.
+            lbl = c_next if m == 3 else c
+            add_subs(f"p_{c}_{i}", f"p_{c_next}_{i}", "wc", lbl, i)
 
     # vertical matching edges between consecutive layers  ->  wr subdivisions
     for i in range(1, n):
@@ -221,13 +258,17 @@ def pretty(name: str) -> str:
         return f"$w^{{b}}_{{{p[1]},{p[2]}}}$"
     if p[0] == "wv":
         return f"$w^{{v}}_{{{p[1]},{p[2]}}}$"
-    # prism / D_{m,n} vertices
+    # prism / D_{m,n} vertices.  Internal keys store (cycle pos c, layer i),
+    # the document figure labels by (layer i, cycle pos j) — so we swap order:
+    #   p_{c}_{i}      -> u_{i,c}      base vertex
+    #   wc_{c}_{i}_{t} -> w^{t}_{i,c}  subdiv of cycle edge u_{i,c}--u_{i,c+1}
+    #   wr_{c}_{i}_{t} -> v^{t}_{i,c}  subdiv of rung  edge u_{i,c}--u_{i+1,c}
     if p[0] == "p":
-        return f"$v_{{{p[1]},{p[2]}}}$"
+        return f"$u_{{{p[2]},{p[1]}}}$"
     if p[0] == "wc":
-        return f"$w^{{c}}_{{{p[1]},{p[2]},{p[3]}}}$"
+        return f"$w^{{{p[3]}}}_{{{p[2]},{p[1]}}}$"
     if p[0] == "wr":
-        return f"$w^{{r}}_{{{p[1]},{p[2]},{p[3]}}}$"
+        return f"$v^{{{p[3]}}}_{{{p[2]},{p[1]}}}$"
     return name
 
 
