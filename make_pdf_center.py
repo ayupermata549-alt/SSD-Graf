@@ -89,8 +89,10 @@ DOC = [
     ("space", 0.5),
 
     ("h2", "7. Catatan tentang kode"),
-    ("body", "- UI menghitung nx.center(G) lalu menandai SATU wakil center (yang"),
-    ("body", "  terdekat ke pusat gambar) dengan lingkaran oranye putus-putus."),
+    ("body", "- UI menghitung nx.center(G) lalu menandai SELURUH anggota center"),
+    ("body", "  dengan lingkaran oranye putus-putus (jumlahnya >= m karena simetri"),
+    ("body", "  putar siklus; satu wakil terdekat ke pusat gambar dipakai hanya"),
+    ("body", "  sebagai sumber perhitungan level BFS)."),
     ("body", "- Center bersifat struktural (soal jarak), BUKAN titik yang otomatis"),
     ("body", "  mendapat label 0. Pelabelan radio optimal biasanya tidak dimulai"),
     ("body", "  dari center."),

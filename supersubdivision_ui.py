@@ -301,17 +301,18 @@ class RadioLabelingUI:
         ys = [p[1] for p in self.pos.values()]
         self.centroid = (sum(xs) / len(xs), sum(ys) / len(ys))
 
-        # graph center: vertices with minimum eccentricity (= radius). For a
-        # symmetric ladder several vertices tie; we keep a SINGLE representative
-        # — the one geometrically closest to the figure centroid (deterministic
-        # tie-break by name). self.center stays a 1-element list.
+        # graph center: ALL vertices with minimum eccentricity (= radius). By
+        # rotational symmetry of C_m the center is never a single vertex — it is
+        # the whole "middle ring" (m(k+1) vertices when n is odd) or the whole
+        # "middle rung" (m*k vertices when n is even); for n=2 with m even the
+        # graph is self-centered. We keep the FULL set for drawing/listing, and a
+        # SINGLE representative (closest to the figure centroid, deterministic
+        # tie-break by name) only as the source for the BFS-level computation.
         cx, cy = self.centroid
-        centers = sorted(nx.center(self.G))
-        pick = min(centers,
-                   key=lambda v: ((self.pos[v][0] - cx) ** 2
-                                  + (self.pos[v][1] - cy) ** 2, v))
-        self.center = [pick]
-        self.center_node = pick
+        self.center = sorted(nx.center(self.G))
+        self.center_node = min(self.center,
+                               key=lambda v: ((self.pos[v][0] - cx) ** 2
+                                              + (self.pos[v][1] - cy) ** 2, v))
 
         # level (BFS distance) of every vertex measured from the center vertex:
         # center = level 0, its neighbours = level 1, ... The maximum level is
@@ -464,13 +465,20 @@ class RadioLabelingUI:
                 lw=2.0, linestyle="--", zorder=6,
             ))
 
-        # legend explaining the orange ring + listing the center vertices
-        center_pretty = ", ".join(pretty(v) for v in self.center)
+        # legend explaining the orange ring + listing the center vertices.
+        # The center is a SET (>= m vertices); list them all, but truncate the
+        # text for large self-centered cases so the legend stays readable.
+        MAX_LIST = 12
+        names = [pretty(v) for v in self.center]
+        if len(names) > MAX_LIST:
+            shown = ", ".join(names[:MAX_LIST]) + f", … (+{len(names) - MAX_LIST})"
+        else:
+            shown = ", ".join(names)
         center_proxy = Line2D(
             [0], [0], marker="o", color="none",
             markerfacecolor="none", markeredgecolor="#ff6f00",
             markeredgewidth=2.0, markersize=13,
-            label=f"titik center: {center_pretty}",
+            label=f"titik center ({len(self.center)}): {shown}",
         )
         self.ax.legend(handles=[center_proxy], loc="lower left",
                        fontsize=9, frameon=True, framealpha=0.9,
